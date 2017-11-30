@@ -5,7 +5,7 @@
 # This script will build FFMPEG for android.
 #
 # Prerequisits:
-#   - FFMPEG source checked out / copied to src subfolder.
+#   - FFMPEG source checked out / copied to FFmpeg subfolder.
 #
 # Build steps:
 #   - Patch the FFMPEG configure script to fix missing support for shared
@@ -28,11 +28,11 @@ if [ -z $HOST_ARCH]; then
 fi
 
 if [ -z $PLATFORM ]; then
-  PLATFORM=9
+  PLATFORM=14
 fi
 
 if [ -z $MAKE_OPTS ]; then
-  MAKE_OPTS="-j4"
+  MAKE_OPTS="-j3"
 fi
 
 function usage
@@ -74,19 +74,19 @@ if [ -z $HOST_ARCH ]; then
 fi
 
 if [ -z $PLATFORM ]; then
-  PLATFORM=9
+  PLATFORM=14
 fi
 
 if [ -z $MAKE_OPTS ]; then
-  MAKE_OPTS="-j4"
+  MAKE_OPTS="-j3"
 fi
 
 if [ -z $ANDROID_NDK ]; then
   echo "ANDROID_NDK not set. Set it to the directory of your NDK installation."
   exit -1
 fi
-if [ ! -d $BASE/src ]; then
-  echo "Please copy or check out FFMPEG source to folder src!"
+if [ ! -d $BASE/FFmpeg ]; then
+  echo "Please copy or check out FFMPEG source to folder FFmpeg!"
   exit -2
 fi
 
@@ -96,33 +96,33 @@ echo "PLATFORM=$PLATFORM"
 echo "MAKE_OPTS=$MAKE_OPTS"
 echo "ANDROID_NDK=$ANDROID_NDK"
 
-cd $BASE/src
+cd $BASE/FFmpeg
 
-# Save original configuration file
-# or restore original before applying patches.
-if [ ! -f configure.bak ]; then
-  echo "Saving original configure file to configure.bak"
-  cp configure configure.bak
-else
-  echo "Restoring original configure file from configure.bak"
-  cp configure.bak configure
-fi
-
-patch -p1 < $BASE/patches/config.patch
-
-if [ ! -f library.mak.bak ]; then
-  echo "Saving original library.mak file to library.mak.bak"
-  cp library.mak library.mak.bak
-else
-  echo "Restoring original library.mak file from library.mak.bak"
-  cp library.mak.bak library.mak
-fi
-
-patch -p1 < $BASE/patches/library.mak.patch
+## Save original configuration file
+## or restore original before applying patches.
+#if [ ! -f configure.bak ]; then
+#  echo "Saving original configure file to configure.bak"
+#  cp configure configure.bak
+#else
+#  echo "Restoring original configure file from configure.bak"
+#  cp configure.bak configure
+#fi
+#
+#patch -p1 < $BASE/patches/config.patch
+#
+#if [ ! -f library.mak.bak ]; then
+#  echo "Saving original library.mak file to library.mak.bak"
+#  cp library.mak library.mak.bak
+#else
+#  echo "Restoring original library.mak file from library.mak.bak"
+#  cp library.mak.bak library.mak
+#fi
+#
+#patch -p1 < $BASE/patches/library.mak.patch
 
 # Remove old build and installation files.
-if [ -d $BASE/install ]; then
-  rm -rf $BASE/install
+if [ -d $BASE/output ]; then
+  rm -rf $BASE/output
 fi
 if [ -d $BASE/build ]; then
   rm -rf $BASE/build
@@ -150,7 +150,7 @@ function build_one
   mkdir -p $1
   cd $1
 
-  $BASE/src/configure \
+  $BASE/FFmpeg/configure \
       --prefix=$2 \
       --enable-shared \
       --enable-static \
@@ -185,10 +185,28 @@ NDK=$ANDROID_NDK
 
 ###############################################################################
 #
+# x86 build configuration
+#
+###############################################################################
+PREFIX=$BASE/output/x86
+BUILD_ROOT=$BASE/build/x86
+SYSROOT=$NDK/platforms/android-$PLATFORM/arch-x86/
+TOOLCHAIN=$NDK/toolchains/x86-4.8/prebuilt/linux-$HOST_ARCH
+CROSS_PREFIX=$TOOLCHAIN/bin/i686-linux-android-
+ARCH=x86
+E_CFLAGS=
+E_LDFLAGS=
+EXTRA="--disable-asm"
+
+build_one "$BUILD_ROOT" "$PREFIX" "$CROSS_PREFIX" "$ARCH" "$SYSROOT" \
+    "$E_CFLAGS" "$E_LDFLAGS" "$EXTRA"
+
+###############################################################################
+#
 # ARM build configuration
 #
 ###############################################################################
-PREFIX=$BASE/install/armeabi
+PREFIX=$BASE/output/armeabi
 BUILD_ROOT=$BASE/build/armeabi
 SYSROOT=$NDK/platforms/android-$PLATFORM/arch-arm/
 TOOLCHAIN=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-$HOST_ARCH
@@ -206,7 +224,7 @@ build_one "$BUILD_ROOT" "$PREFIX" "$CROSS_PREFIX" "$ARCH" "$SYSROOT" \
 # ARM-v7a build configuration
 #
 ###############################################################################
-PREFIX=$BASE/install/armeabi-v7a
+PREFIX=$BASE/output/armeabi-v7a
 BUILD_ROOT=$BASE/build/armeabi-v7a
 SYSROOT=$NDK/platforms/android-$PLATFORM/arch-arm/
 TOOLCHAIN=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-$HOST_ARCH
@@ -221,37 +239,19 @@ build_one "$BUILD_ROOT" "$PREFIX" "$CROSS_PREFIX" "$ARCH" "$SYSROOT" \
 
 ###############################################################################
 #
-# x86 build configuration
-#
-###############################################################################
-PREFIX=$BASE/install/x86
-BUILD_ROOT=$BASE/build/x86
-SYSROOT=$NDK/platforms/android-$PLATFORM/arch-x86/
-TOOLCHAIN=$NDK/toolchains/x86-4.8/prebuilt/linux-$HOST_ARCH
-CROSS_PREFIX=$TOOLCHAIN/bin/i686-linux-android-
-ARCH=x86
-E_CFLAGS=
-E_LDFLAGS=
-EXTRA="--disable-asm"
-
-build_one "$BUILD_ROOT" "$PREFIX" "$CROSS_PREFIX" "$ARCH" "$SYSROOT" \
-    "$E_CFLAGS" "$E_LDFLAGS" "$EXTRA"
-
-###############################################################################
-#
 # MIPS build configuration
 #
 ###############################################################################
-PREFIX=$BASE/install/mips
-BUILD_ROOT=$BASE/build/mips
-SYSROOT=$NDK/platforms/android-$PLATFORM/arch-mips/
-TOOLCHAIN=$NDK/toolchains/mipsel-linux-android-4.8/prebuilt/linux-$HOST_ARCH
-CROSS_PREFIX=$TOOLCHAIN/bin/mipsel-linux-android-
-ARCH=mips32
-E_CFLAGS=
-E_LDFLAGS=
-EXTRA=""
-
-build_one "$BUILD_ROOT" "$PREFIX" "$CROSS_PREFIX" "$ARCH" "$SYSROOT" \
-    "$E_CFLAGS" "$E_LDFLAGS" "$EXTRA"
-
+##PREFIX=$BASE/output/mips
+##BUILD_ROOT=$BASE/build/mips
+##SYSROOT=$NDK/platforms/android-$PLATFORM/arch-mips/
+##TOOLCHAIN=$NDK/toolchains/mipsel-linux-android-4.8/prebuilt/linux-$HOST_ARCH
+##CROSS_PREFIX=$TOOLCHAIN/bin/mipsel-linux-android-
+##ARCH=mips32
+##E_CFLAGS=
+##E_LDFLAGS=
+##EXTRA=""
+##
+##build_one "$BUILD_ROOT" "$PREFIX" "$CROSS_PREFIX" "$ARCH" "$SYSROOT" \
+##    "$E_CFLAGS" "$E_LDFLAGS" "$EXTRA"
+##
