@@ -100,16 +100,16 @@ cd $BASE/FFmpeg
 
 ## Save original configuration file
 ## or restore original before applying patches.
-#if [ ! -f configure.bak ]; then
-#  echo "Saving original configure file to configure.bak"
-#  cp configure configure.bak
-#else
-#  echo "Restoring original configure file from configure.bak"
-#  cp configure.bak configure
-#fi
-#
-#patch -p1 < $BASE/patches/config.patch
-#
+if [ ! -f configure.bak ]; then
+  echo "Saving original configure file to configure.bak"
+  cp configure configure.bak
+else
+  echo "Restoring original configure file from configure.bak"
+  cp configure.bak configure
+fi
+
+patch -p1 < $BASE/patches/configure.patch
+
 #if [ ! -f library.mak.bak ]; then
 #  echo "Saving original library.mak file to library.mak.bak"
 #  cp library.mak library.mak.bak
@@ -153,24 +153,17 @@ function build_one
   $BASE/FFmpeg/configure \
       --prefix=$2 \
       --enable-shared \
-      --enable-static \
-      --disable-doc \
-      --disable-ffmpeg \
-      --disable-ffplay \
-      --disable-ffprobe \
-      --disable-ffserver \
+      --enable-pic \
+      --enable-runtime-cpudetect \
+      --enable-cross-compile \
+      --disable-symver \
+      --disable-static \
+      --disable-programs \
       --disable-avdevice \
       --disable-doc \
-      --enable-symver \
-      --enable-decoder=h264 \
-      --enable-parser=h264 \
-      --enable-decoder=h263 \
-      --enable-runtime-cpudetect \
       --cross-prefix=$3 \
       --target-os=linux \
-      --enable-pic \
       --arch=$4 \
-      --enable-cross-compile \
       --sysroot=$5 \
       --extra-cflags="-Os $6" \
       --extra-ldflags="$7" \
