@@ -12,10 +12,17 @@
 #     library versioning on android.
 #   - Configure FFMPEG
 #   - Build FFMPEG
+# Requirement:
+#   - make
+#   - patch
+#   - bash
+#   - diffutils
 #
 ###############################################################################
 SCRIPT=$(readlink -f $0)
 BASE=$(dirname $SCRIPT)
+NPROC=$(grep -c ^processor /proc/cpuinfo)
+
 
 ###############################################################################
 #
@@ -32,7 +39,7 @@ if [ -z $PLATFORM ]; then
 fi
 
 if [ -z $MAKE_OPTS ]; then
-  MAKE_OPTS="-j3"
+  MAKE_OPTS="-j$(($NPROC+1))"
 fi
 
 function usage
@@ -167,6 +174,7 @@ function build_one
       --sysroot=$5 \
       --extra-cflags="-Os $6" \
       --extra-ldflags="$7" \
+      --disable-linux-perf \
       $8
 
   make clean
