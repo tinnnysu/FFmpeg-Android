@@ -16,7 +16,7 @@ Building
 Building is straight forward.
 
 ```
-git submodule update
+git submodule update --init
 export ANDROID_NDK = /path/to/ndk/dir
 ./build.sh
 ```
